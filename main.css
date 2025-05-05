@@ -1,0 +1,1089 @@
+/* ------------- your existing bridge design (pasted verbatim) ------------- */
+
+.container {
+    background: #1a1a1a;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.5s ease-in-out;
+    min-height: 420px;
+    transition: min-height 0.3s ease;
+    position: relative;
+}
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.step-indicator {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 20px;
+}
+.step-indicator div {
+    flex: 1;
+    padding: 10px;
+    border-bottom: 3px solid #444;
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    transition: border-color 0.3s, color 0.3s;
+}
+.step-indicator .active {
+    border-bottom: 3px solid #ff00ff;
+    color: #fff;
+}
+.step {
+    display: none;
+    width: 100%;
+    flex-grow: 1; /* Makes sure content takes available space */
+    flex-direction: column;
+}
+.step.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.3s ease-in-out;
+}
+svg {
+    width: 32px;
+    height: 32px;
+    fill: #fff;
+}
+/* Improve error highlighting for the whole input group */
+.input-group {
+    display: flex;
+    align-items: center;
+    background: #292929;
+    border-radius: 10px;
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    width: 100%;
+    position: relative; /* Needed for absolute positioning of error text */
+    border: 2px solid transparent; /* Default border */
+    transition: border 0.3s ease-in-out, background 0.3s ease-in-out;
+}
+
+/* When there's an error, highlight the whole input-group */
+.input-group.error {
+    border: 2px solid #ff4d4d !important;
+    background: rgba(255, 0, 0, 0.15);
+}
+
+/* Make the icon red in case of an error */
+.input-group.error i {
+    color: #ff4d4d !important;
+}
+/* 🔹 Primary Button - Neon Purple */
+.button-primary {
+    background: linear-gradient(45deg, #ff00ff, #0088ff);
+    border: none;
+    padding: 14px 24px;
+    font-size: 18px;
+    font-weight: 500; /* Keep same weight */
+    color: white;
+    cursor: pointer;
+    text-decoration: none;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.message{
+    flex:1;
+}
+.button-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(255, 0, 255, 0.3);
+}
+
+
+/* 🔹 Secondary Button - Minimalist Dark Grey */
+.button-secondary {
+    background: #222222; /* Dark grey */
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out, color 0.3s ease-in-out;
+}
+
+.button-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+/* 🔹 Disabled Buttons */
+.button-primary:disabled,
+.button-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* 🔹 Wallet Buttons (Compact, Centered) */
+.wallet-connect .button-secondary {
+    width: auto; /* Only as wide as the text */
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.wallet-connect i {
+    color: #bbb;
+    font-size: 18px;
+}
+
+
+/* Style input inside the input-group */
+.input-group input {
+    flex: 1;
+    padding: 10px;
+    padding-left: 24px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #fff;
+    outline: none;
+}
+
+/* Error message positioned correctly below input */
+.error-message {
+    color: #ff4d4d;
+    font-size: 13px;
+    position: absolute;
+    bottom: -40px; /* Ensures it doesn't disrupt layout */
+    left: 12px;
+    display: none;
+}
+
+.input-group i {
+    margin-right: 12px;
+    color: #bbb;
+}
+
+
+select, input {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #fff;
+    outline: none;
+}
+select option {
+    background: #1a1a1a;
+    color: #fff;
+}
+.nav-buttons {
+    margin-top: auto; /* Pushes nav-buttons to the bottom */
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+}
+.button {
+    background: linear-gradient(45deg, #ff00ff, #0088ff);
+    border: none;
+    padding: 14px 24px;
+    font-size: 18px;
+    color: white;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(255, 0, 255, 0.3);
+}
+.d-flex {
+    display: flex;
+}
+.gap-10 {
+    gap: 10px;
+}
+#tx-url{
+    color:white;
+}
+.w-100 {
+    width: 100%;
+}
+#step1 .next-btn {
+    width: 100%;
+}
+.next-btn, .prev-btn, .bridge-btn {
+    flex: 1; /* Make buttons equal width */
+    text-align: center;
+}
+body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at top, #141414, #0d0d0d);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    text-align: center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Subtle animated neon blur effect */
+body::before {
+    content: "";
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 0, 255, 0.3);
+    filter: blur(120px);
+    top: 20%;
+    left: 10%;
+    animation: moveBlur 8s infinite alternate ease-in-out;
+}
+
+body::after {
+    content: "";
+    position: absolute;
+    width: 250px;
+    height: 250px;
+    background: rgba(0, 136, 255, 0.3);
+    filter: blur(100px);
+    bottom: 15%;
+    right: 10%;
+    animation: moveBlur 10s infinite alternate ease-in-out;
+}
+
+/* Keyframes for smooth background animation */
+@keyframes moveBlur {
+    from {
+        transform: translateY(-20px);
+    }
+    to {
+        transform: translateY(20px);
+    }
+}
+
+/* Centering the content */
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+}
+
+/* Modern Title Styling */
+.title {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 4.5px;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 0, 255, 0.6), 0 0 20px rgba(0, 136, 255, 0.4);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+}
+
+
+/* Toast Container */
+#toastContainer {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Toast Base */
+.toast {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    min-width: 250px;
+    max-width: 350px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Success Toast */
+.toast-success {
+    background-color: #28a745;
+    color: white;
+}
+
+/* Error Toast */
+.toast-error {
+    background-color: #dc3545;
+    color: white;
+}
+
+/* Toast Icon */
+.toast i {
+    margin-right: 10px;
+}
+
+/* Fade-in class */
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Fade-out class */
+.toast.hide {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Swap Arrow Button */
+.swap-arrow {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+/* Style the Lucide icon */
+.swap-arrow svg {
+    width: 32px;
+    height: 32px;
+    color: #ffffff; /* Make sure the icon is white */
+    transition: color 0.2s ease-in-out;
+}
+
+/* Add rotation effect on hover */
+.swap-arrow:hover {
+    transform: rotate(180deg);
+}
+
+.swap-arrow:hover i {
+    color: #ff00ff; /* Change color on hover */
+}
+
+/* Ensure dropdowns and button are aligned properly */
+.align-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px; /* Adds space between elements */
+}
+
+.mb-15 {
+    margin-bottom: 15px;
+}
+
+.intro{
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+.bridge-status {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 400px;
+    margin: 0 auto;
+    background: #222;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0.4;
+    transition: opacity 0.3s ease-in-out;
+    position: relative; /* Needed for pseudo-elements */
+}
+
+.status-item.active {
+    opacity: 1;
+}
+
+/* Animated pulse effect for active step */
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(170, 0, 255, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 15px rgba(170, 0, 255, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 5px rgba(170, 0, 255, 0.4);
+    }
+}
+
+.status-item .status-icon {
+    width: 14px;
+    height: 14px;
+    background: #444;
+    border-radius: 50%;
+    transition: background 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.status-item.active .status-icon {
+    background: #aa00ff;
+    animation: pulseGlow 1.5s infinite alternate ease-in-out;
+}
+
+/* Adding a rotating loader inside active status */
+/* Existing active step styling */
+.status-item.active::after {
+    content: "";
+    position: absolute;
+    left: -3px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top: 2px solid #aa00ff;
+    border-right: 2px solid #aa00ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite; /* Default spinning animation */
+}
+
+/* Stop spinning when status is "done" */
+.status-item.done::after {
+    animation: none; /* Stops the spinning */
+    display: none; /* Optionally hide the loader */
+}
+
+/* Keyframes for spinning animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
+.status-item p {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+#bridge-status-container{
+    margin-top: auto;
+    margin-bottom: auto;
+}
+.deposit-address-badge {
+    background: #292929;
+    color: #fff;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 10;
+}
+
+.deposit-address-badge p {
+    margin: 0;
+    font-weight: 600;
+    font-size: 11px;
+    color: #aaa;
+}
+
+.address-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* Make container responsive */
+@media (max-width: 600px) {
+    .container {
+        width: 95%; /* Use more screen space */
+        max-width: 400px; /* Prevent it from being too wide */
+        padding: 20px;
+        min-height: 500px;
+    }
+    .wrapper {
+         height: 100%;
+    }
+    .title {
+        font-size: 22px; /* Slightly smaller title */
+        margin-top: 5rem;
+    }
+
+    .step-indicator {
+        flex-direction: row; /* Keep steps in a row */
+        flex-wrap: wrap; /* Allow wrapping if needed */
+        gap: 5px;
+    }
+
+    .step-indicator div {
+        padding: 8px;
+        font-size: 12px;
+        flex: 1; /* Distribute space evenly */
+        min-width: 80px; /* Prevent text from breaking */
+    }
+
+    .input-group {
+        flex-direction: row; /* Keep inputs inline */
+        align-items: center;
+        padding: 12px;
+    }
+
+    .input-group i {
+        margin: 0 10px 0 0; /* Ensure spacing between icon and input */
+    }
+
+    
+
+    select, input {
+        font-size: 16px; /* Maintain readability */
+        padding: 10px;
+        width: 100%; /* Use full width */
+    }
+
+    .nav-buttons {
+        flex-direction: column; /* Stack buttons */
+        gap: 10px;
+    }
+
+    .button {
+        padding: 14px 20px; /* Keep buttons large for easy tap */
+        font-size: 18px;
+        width: 100%;
+    }
+    .input-group.error{
+        margin-bottom: 40px;
+    }
+}
+
+/* Chain & Asset Logos */
+.chain-logo, .asset-logo {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    border-radius: 50%; /* Circular logos */
+    object-fit: contain;
+}
+
+/* Ensure dropdowns align properly */
+.input-group {
+    display: flex;
+    align-items: center;
+    background: #292929;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+/* Swap Button */
+.swap-arrow {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+/* Lucide Icon for Swap Button */
+.swap-arrow i {
+    width: 32px;
+    height: 32px;
+    color: #ffffff;
+    transition: color 0.2s ease-in-out;
+}
+
+/* Add rotation effect on hover */
+.swap-arrow:hover {
+    transform: rotate(180deg);
+}
+
+.swap-arrow:hover i {
+    color: #ff00ff;
+}
+/* Ultra-Minimal Vertical Navigation */
+.vertical-text-nav {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    z-index: 100;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 10px;
+    gap: 30px;
+}
+
+/* Navigation Logo */
+.nav-logo {
+    display: block;
+}
+
+.nav-logo img {
+    width: 48px;
+    height: auto;
+    opacity: 0.9;
+    transition: opacity 0.3s ease-in-out;
+    padding-left:6px
+}
+
+.nav-logo img:hover {
+    opacity: 1;
+}
+
+/* Navigation Links */
+.nav-links {
+    display: flex;
+    flex-direction: row;
+    gap: 14px;
+}
+
+/* Navigation Items */
+.nav-item {
+    cursor: pointer;
+    color: #ffffff;
+    transition: color 0.3s ease-in-out, text-shadow 0.3s ease-in-out, transform 0.2s ease-in-out;
+    padding: 6px 10px;
+    text-align: left;
+    opacity: 0.85;
+}
+
+/* Active Item */
+.nav-item.active {
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.7);
+    opacity: 1;
+}
+
+/* Hover Effects */
+.nav-item:hover {
+    color: #00ffff;
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.5);
+    transform: translateX(5px);
+    opacity: 1;
+}
+
+.nav-toggle {
+    display: none;
+}
+
+/* 🔹 Confirmation Box (Matches Input Fields) */
+.confirmation-box {
+    background: #292929;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.confirm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+    padding: 8px 0;
+}
+
+.confirm-item img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin: 0 8px;
+}
+
+/* 🔹 Wallet Connection Section */
+.wallet-section {
+    text-align: left;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.wallet-connect {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #292929;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.wallet-connect i {
+    margin-right: 10px;
+    color: #bbb;
+}
+
+.wallet-connect .button {
+    flex: 1;
+    text-align: center;
+}
+
+
+/* Mobile-Specific Navigation */
+@media (max-width: 600px) {
+
+
+    .vertical-text-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        /* A single row with centered items */
+        display: flex;
+        align-items: center;
+        /* Some padding for breathing room */
+        padding: 10px 16px;
+        gap: 10px;
+        /* Keep it above other elements */
+        z-index: 200;
+      }
+
+    /* Adjust the position of the logo for mobile */
+    .nav-logo img {
+        width: 32px;
+
+        height: auto;
+    }
+
+    /* Fix the Hamburger Menu Button */
+    /* The hamburger is now just "in flow" with the logo */
+  .nav-toggle {
+    position: static;     /* remove the previously fixed positioning */
+    margin-left: auto;    /* pushes the icon to the right */
+    font-size: 32px;      
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+  }
+
+    /* Mobile Nav Menu (Hidden by Default) */
+    .nav-links {
+        position: fixed;
+        top: 0;
+        left: -100%;
+        width: 220px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        gap: 15px;
+        transition: left 0.3s ease-in-out;
+        background: #1a1a1a;
+      }
+    /* Slide-In Effect */
+    .vertical-text-nav.open .nav-links {
+        left: 0;
+    }
+    body .announcement-bar{
+        width:95%;
+        max-width: 400px;
+        padding:8px 20px;
+        
+    }
+}
+/* 🔹 Announcement Bar (Between Title & Card) */
+.announcement-bar {
+    background: #1e0b2c; /* Darker purple for contrast */
+    color: #fff;
+    text-align: center;
+    padding: 8px 30px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    width: 500px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 10px rgba(170, 0, 255, 0.4);
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* 🔹 Highlight Important Text (APR, etc.) */
+.highlight {
+    color: #ffff00; /* Bright yellow */
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 255, 0, 0.7);
+}
+
+/* 🔹 Style the Link */
+.announcement-bar a {
+    color: #00ffff;
+    font-weight: bold;
+    text-decoration: none;
+    transition: opacity 0.3s ease-in-out;
+}
+
+#step2 a{
+    color: #00ffff;
+    font-weight: bold;
+    text-decoration: none;
+    transition: opacity 0.3s ease-in-out;
+}
+#step4 a{
+    color: #00ffff;
+    font-weight: bold;
+    text-decoration: none;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.announcement-bar a:hover {
+    opacity: 0.7;
+}
+/* 🔹 Modal Backdrop */
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); /* Dark semi-transparent overlay */
+    z-index: 199;
+}
+
+/* 🔹 Modal Base */
+.modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    background: #1e1e1e;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 200;
+    min-width: 360px;
+    max-width: 90%;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+/* 🔹 Show Modal */
+.modal.show {
+    display: block;
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* 🔹 Hide Modal Instantly */
+.modal.hide {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* 🔹 Modal Content */
+.modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 🔹 Modal Buttons */
+.modal-buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+/* 🔹 Prevent background scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+
+.wallet-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.wallet-option {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #292929;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    color: white;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.wallet-option:hover {
+    background: rgba(255, 0, 255, 0.1);
+    transform: scale(1.02);
+}
+
+#dashboard-content{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-grow: 1;
+    width: 100%;
+    
+}.stats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    align-items: stretch;
+    width: 100%;
+}
+
+.stats-box {
+    flex: 1 1 250px;
+    background: #222;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(255, 0, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    min-width: 220px;
+    transition: all 0.3s ease-in-out;
+}
+
+.stats-box:hover {
+    box-shadow: 0 6px 25px rgba(0, 136, 255, 0.3);
+    transform: scale(1.02);
+}
+
+.stats-box h2 {
+    font-size: 18px;
+    color: #fff;
+    margin-bottom: 12px;
+    text-shadow: 0 0 5px rgba(255, 0, 255, 0.5);
+}
+
+.stats-box p {
+    font-size: 32px;
+    font-weight: bold;
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+}
+
+.skeleton {
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 400% 100%;
+    animation: shimmer 1.2s infinite;
+    border-radius: 12px;
+    min-height: 140px;
+    width: 100%;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -400px 0;
+    }
+    100% {
+        background-position: 400px 0;
+    }
+}
+.volume-badge {
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 8px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    opacity: 0;
+    animation: fadeInBadge 0.8s forwards ease-out;
+}
+
+.volume-badge.up {
+    background-color: rgba(40, 167, 69, 0.8);
+    color: white;
+}
+
+.volume-badge.down {
+    background-color: rgba(220, 53, 69, 0.8);
+    color: white;
+}
+
+@keyframes fadeInBadge {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.big-number {
+    font-size: 32px;
+    font-weight: bold;
+    color: #00ffff;
+    margin: 10px 0 5px;
+}
+
+.stat-subtext {
+    font-size: 13px;
+    color: #aaa;
+}
+
+/* ------------- tiny additions for the stats boxes ------------- */
+.stats-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0,255,255,.5);
+    margin: 0 0 6px;
+}
+.stats-label {
+    font-size: 15px;
+    color: #fff;
+}

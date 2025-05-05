@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>$XIAN Gas & Burn Dashboard</title>
+  
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+  <!-- Tailwind + Roboto Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js core + date-fns adapter -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --xian-cyan: #06e6cb;
+      --xian-orange: #ff914a;
+    }
+
+    html {
+      font-family: "Roboto Mono", monospace;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .glass {
+      background: rgba(11, 11, 15, .7);
+      backdrop-filter: blur(50px);
+      border: 1px solid rgba(255, 255, 255, .47);
+    }
+    .text-xian-cyan {
+      color: var(--xian-cyan);
+    }
+    .hover\:text-xian-cyan:hover {
+      color: var(--xian-cyan);
+    }
+
+  </style>
+</head>
+
+<body>
+  <header class="flex items-center gap-4 mb-8">
+    <img src="logo.svg" alt="XIAN Logo" class="w-16 h-16">
+    <h1 class="text-2xl sm:text-3xl font-bold">$XIAN Gas & Burn Stats</h1>
+  </header>
+
+  <section id="board" class="glass rounded-[50px] p-8 w-full max-w-4xl"></section>
+
+  <script type="module">
+    const GRAPHQL = 'https://node.xian.org/graphql';
+    const STAMP_COST = 'https://node.xian.org/abci_query?path="/get/stamp_cost.S:value"';
+    const REFRESH_MS = 60_000;
+    const board = document.getElementById('board');
+
+    const fmt = n => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const qs = (s, p = document) => p.querySelector(s);
+
+    let selectedRange = 'day';
+    let chart = null;
+
+    function prettyLabel(range) {
+        return range === 'day' ? '24h' : range === 'week' ? '7d' : '30d';
+    }
+
+
+    function getCutoffISO(range) {
+      const now = Date.now();
+      const ms = range === 'week' ? 7 * 86400000 : range === 'month' ? 30 * 86400000 : 86400000;
+      return new Date(now - ms).toISOString();
+    }
+
+    function getChartLabels(range) {
+      if (range === 'week') return Array(7).fill(0);
+      if (range === 'month') return Array(30).fill(0);
+      return Array(24).fill(0);
+    }
+
+    const gql = (q, v = {}) => fetch(GRAPHQL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query: q, variables: v })
+    }).then(r => r.json()).then(j => j.data);
+
+    async function getStampRate() {
+      const j = await fetch(STAMP_COST).then(r => r.json());
+      const b64 = j?.result?.response?.value;
+      const rate = parseInt(atob(b64), 10);
+      return rate || 0;
+    }
+
+    function txQuery(cutISO) {
+      return `query {
+        allTransactions(
+          filter: {created:{greaterThan:"${cutISO}"}},
+          orderBy: CREATED_DESC, condition:{success:true}
+        ){
+          edges { node { created stamps jsonContent } }
+        }
+      }`;
+    }
+
+    const txEdges = d => d.allTransactions.edges.map(e => e.node);
+
+    function crunch(txs, stamp, range) {
+      const ONE = stamp;
+      const now = Date.now();
+      const devMap = {};
+      let burn = 0, feeSum = 0, dev = 0, val = 0, fnd = 0;
+
+      const bins = getChartLabels(range);
+      const unit = range === 'day' ? 3600000 : 86400000;
+
+      for (const tx of txs) {
+        const used = tx.stamps / ONE;
+        let rDev = 0, rVal = 0, rFnd = 0;
+        const R = tx.jsonContent.tx_result.rewards || {};
+        for (const [bucket, map] of Object.entries(R)) {
+          const sub = Object.values(map).reduce((s, v) => s + parseFloat(v), 0);
+          if (bucket === 'developer_reward') {
+  for (const [addr, amount] of Object.entries(map)) {
+    const num = parseFloat(amount);
+    devMap[addr] = (devMap[addr] || 0) + num;
+    rDev += num;
+  }
+}   
+          else if (bucket === 'masternode_reward' || bucket === 'validator_reward') rVal += sub;
+          else if (bucket === 'foundation_reward') rFnd += sub;
+        }
+        const burned = used - (rDev + rVal + rFnd);
+        burn += burned;
+        dev += rDev;
+        val += rVal;
+        fnd += rFnd;
+        feeSum += used;
+
+        const ageMs = now - Date.parse(tx.created);
+        const bin = Math.floor(ageMs / unit);
+        const index = bins.length - 1 - bin;
+        if (index >= 0 && index < bins.length) bins[index] += burned;
+      }
+      let topDev = null;
+let max = 0;
+for (const [addr, amount] of Object.entries(devMap)) {
+  if (amount > max) {
+    max = amount;
+    topDev = addr;
+  }
+}
+
+      return {
+        burn24h: burn,
+        fees: { dev, val, fnd },
+        avgFee: feeSum / (txs.length || 1),
+        hourly: bins,
+        topDeveloper: topDev ? { address: topDev, amount: max } : null
+
+      };
+    }
+
+    function render(d, rangeLabel) {
+      board.innerHTML = `
+        <div class="flex justify-center gap-4 mb-6">
+          ${['day', 'week'].map(r =>
+            `<button data-range="${r}" class="range-btn px-4 py-2 rounded-full border ${r === rangeLabel ? 'bg-white text-black font-bold' : 'border-white text-white'} hover:bg-white hover:text-black transition">
+              ${r.charAt(0).toUpperCase() + r.slice(1)}
+            </button>`
+          ).join('')}
+        </div>
+        <div class="flex flex-col items-center mb-8">
+            <p class="uppercase text-sm tracking-widest text-gray-400">Burned in last ${prettyLabel(rangeLabel)}</p>
+
+          <h2 class="text-4xl sm:text-5xl font-bold" style="color:var(--xian-orange)">
+            ${fmt(d.burn24h)} XIAN
+          </h2>
+        </div>
+        <div class="grid gap-6 grid-cols-1 sm:grid-cols-3 mb-8">
+            ${card(`<i data-lucide="code" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Developer Rewards (${prettyLabel(rangeLabel)})`, d.fees.dev)}
+
+            ${card(`<i data-lucide="shield" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Validator Rewards (${prettyLabel(rangeLabel)})`, d.fees.val)}
+${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Foundation Rewards (${prettyLabel(rangeLabel)})`, d.fees.fnd)}
+        </div>
+        ${d.topDeveloper ? `
+  <div class="text-center sm:col-span-3 text-sm text-gray-400">
+    <i data-lucide="star" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Top Developer: <a href="https://explorer.xian.org/addresses/${d.topDeveloper.address}" class="text-xian-cyan hover:underline" target="_blank">${d.topDeveloper.address.slice(0, 6)}...${d.topDeveloper.address.slice(-4)}</a>
+    earned <span class="text-white font-semibold">${fmt(d.topDeveloper.amount)} XIAN</span>
+  </div>` : ''}
+        <div class="border-t border-white/20 my-8"></div>
+        <div class="flex flex-col sm:flex-row gap-6 justify-center mb-8">
+            ${mini(`Avg Tx Fee (${prettyLabel(rangeLabel)})`, fmt(d.avgFee) + ' XIAN')}
+
+        </div>
+        <div class="my-8">
+          <p class="text-sm text-gray-400 text-center mb-2">
+            <p class="text-sm text-gray-400 text-center mb-2">
+  ${rangeLabel === 'day' ? 'Hourly burn (past 24h)' : `Daily burn (past ${prettyLabel(rangeLabel)})`}
+</p>
+
+          </p>
+          <canvas id="burnChart" height="120"></canvas>
+        </div>`;
+
+      const canvas = qs('#burnChart');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+      grad.addColorStop(0, 'rgba(6,230,203,.35)');
+      grad.addColorStop(1, 'rgba(6,230,203,0)');
+
+      const now = Date.now();
+      const unitMs = rangeLabel === 'day' ? 3600000 : 86400000;
+      const pointData = d.hourly.map((y, i) => ({
+        x: now - ((d.hourly.length - 1 - i) * unitMs),
+        y
+      }));
+
+      if (chart) {
+        chart.destroy();
+      }
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'XIAN burned',
+            data: pointData,
+            borderColor: '#06e6cb',
+            borderWidth: 3,
+            pointRadius: 0,
+            tension: 0.3,
+            backgroundColor: grad,
+            fill: true
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { display: false },
+            tooltip: { backgroundColor: '#111', bodyColor: 'var(--xian-cyan)' }
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: rangeLabel === 'day' ? 'hour' : 'day',
+                displayFormats: rangeLabel === 'day' ? { hour: 'HH:mm' } : { day: 'MMM d' }
+              },
+              ticks: { color: '#777', font: { size: 12 } },
+              grid: { color: 'rgba(255,255,255,0.07)', dash: [3, 3] }
+            },
+            y: {
+              ticks: { color: '#777', font: { size: 12 } },
+              grid: { color: 'rgba(255,255,255,0.07)', dash: [3, 3] }
+            }
+          }
+        }
+      });
+      lucide.createIcons();
+
+    }
+
+    const card = (t, v) => `
+      <div class="glass rounded-3xl p-6 flex flex-col gap-2 text-center">
+        <p class="text-sm text-gray-400">${t}</p>
+        <span class="text-2xl font-semibold">${fmt(v)} XIAN</span>
+      </div>`;
+
+    const mini = (l, v) => `
+      <div class="text-center">
+        <p class="text-sm text-gray-400">${l}</p>
+        <span class="text-xl font-semibold">${v}</span>
+      </div>`;
+
+    function addRangeListeners() {
+      document.querySelectorAll('.range-btn').forEach(btn => {
+        btn.onclick = () => {
+          selectedRange = btn.dataset.range;
+          refresh();
+        };
+      });
+    }
+
+    async function refresh() {
+      const cutoff = getCutoffISO(selectedRange);
+      try {
+        const [rate, txData] = await Promise.all([
+          getStampRate(),
+          gql(txQuery(cutoff))
+        ]);
+        if (!rate) throw 'stamp rate null';
+        const txs = txEdges(txData);
+        const data = txs.length
+          ? crunch(txs, rate, selectedRange)
+          : { burn24h: 0, fees: { dev: 0, val: 0, fnd: 0 }, avgFee: 0, hourly: getChartLabels(selectedRange) };
+        render(data, selectedRange);
+        addRangeListeners();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    await refresh();
+    setInterval(refresh, REFRESH_MS);
+    window.addEventListener('resize', () => chart && (chart.resize(), chart.update()));
+  </script>
+</body>
+
+</html>
