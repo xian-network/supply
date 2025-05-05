@@ -896,7 +896,44 @@ body::after {
     background: rgba(0, 0, 0, 0.5); /* Dark semi-transparent overlay */
     z-index: 199;
 }
-
+.range-loading-bar {
+    position: relative;
+    height: 2px;
+    background: rgba(6, 230, 203, 0.1);
+    margin-top: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 1px;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+  }
+  
+  .range-loading-bar.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .range-loading-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: var(--xian-cyan);
+    animation: shimmer-xian 1.2s ease-in-out infinite;
+    box-shadow: 0 0 4px rgba(6, 230, 203, 0.5);
+    border-radius: 1px;
+  }
+  
+  @keyframes shimmer-xian {
+    0%   { left: -40%; }
+    50%  { left: 100%; }
+    100% { left: 100%; }
+  }
+  
+  
 /* 🔹 Modal Base */
 .modal {
     display: none;
@@ -1087,3 +1124,13 @@ body.modal-open {
     font-size: 15px;
     color: #fff;
 }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .skeleton {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    animation: pulse 1.5s infinite ease-in-out;
+  }
+  

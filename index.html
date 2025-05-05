@@ -4,22 +4,18 @@
 <head>
   <meta charset="UTF-8">
   <title>$XIAN Gas & Burn Dashboard</title>
-  
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-
-  <!-- Tailwind + Roboto Mono -->
+  <link rel="stylesheet" href="main.css?v=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Chart.js core + date-fns adapter -->
   <script src="https://unpkg.com/lucide@latest"></script>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/date-fns@2.30.0/dist/date-fns.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
   <style>
     :root {
@@ -46,13 +42,14 @@
       backdrop-filter: blur(50px);
       border: 1px solid rgba(255, 255, 255, .47);
     }
+
     .text-xian-cyan {
       color: var(--xian-cyan);
     }
+
     .hover\:text-xian-cyan:hover {
       color: var(--xian-cyan);
     }
-
   </style>
 </head>
 
@@ -75,11 +72,12 @@
 
     let selectedRange = 'day';
     let chart = null;
+    let loading = false;
+
 
     function prettyLabel(range) {
-        return range === 'day' ? '24h' : range === 'week' ? '7d' : '30d';
+      return range === 'day' ? '24h' : range === 'week' ? '7d' : '30d';
     }
-
 
     function getCutoffISO(range) {
       const now = Date.now();
@@ -106,18 +104,51 @@
       return rate || 0;
     }
 
-    function txQuery(cutISO) {
+    function txQuery(cutISO, beforeISO) {
+      const createdFilter = beforeISO
+        ? `{ greaterThan: "${cutISO}", lessThan: "${beforeISO}" }`
+        : `{ greaterThan: "${cutISO}" }`;
+
       return `query {
-        allTransactions(
-          filter: {created:{greaterThan:"${cutISO}"}},
-          orderBy: CREATED_DESC, condition:{success:true}
-        ){
-          edges { node { created stamps jsonContent } }
-        }
-      }`;
+    allTransactions(
+      filter: { created: ${createdFilter} },
+      orderBy: CREATED_DESC,
+      condition: { success: true },
+      first: 5000
+    ) {
+      edges { node { created stamps jsonContent } }
+    }
+  }`;
     }
 
+
     const txEdges = d => d.allTransactions.edges.map(e => e.node);
+
+    async function fetchAllTxs(range) {
+      const cutoff = getCutoffISO(range);
+      const chunkSize = 500;
+      const all = [];
+      let before = null;
+
+      while (true) {
+        const query = txQuery(cutoff, before);
+        const data = await gql(query);
+        const nodes = txEdges(data);
+        if (!nodes.length) break;
+
+        all.push(...nodes);
+
+        // Advance `before` to avoid duplication
+        before = nodes[nodes.length - 1].created;
+
+        // Stop when we know we're below the limit
+        if (nodes.length < chunkSize) break;
+      }
+
+      return all;
+    }
+
+
 
     function crunch(txs, stamp, range) {
       const ONE = stamp;
@@ -131,17 +162,19 @@
       for (const tx of txs) {
         const used = tx.stamps / ONE;
         let rDev = 0, rVal = 0, rFnd = 0;
+        // Need to check if rewards exist
+        if (!tx.jsonContent || !tx.jsonContent.tx_result) continue;
+        if (!tx.jsonContent.tx_result.rewards) continue;
         const R = tx.jsonContent.tx_result.rewards || {};
         for (const [bucket, map] of Object.entries(R)) {
           const sub = Object.values(map).reduce((s, v) => s + parseFloat(v), 0);
           if (bucket === 'developer_reward') {
-  for (const [addr, amount] of Object.entries(map)) {
-    const num = parseFloat(amount);
-    devMap[addr] = (devMap[addr] || 0) + num;
-    rDev += num;
-  }
-}   
-          else if (bucket === 'masternode_reward' || bucket === 'validator_reward') rVal += sub;
+            for (const [addr, amount] of Object.entries(map)) {
+              const num = parseFloat(amount);
+              devMap[addr] = (devMap[addr] || 0) + num;
+              rDev += num;
+            }
+          } else if (bucket === 'masternode_reward' || bucket === 'validator_reward') rVal += sub;
           else if (bucket === 'foundation_reward') rFnd += sub;
         }
         const burned = used - (rDev + rVal + rFnd);
@@ -156,14 +189,14 @@
         const index = bins.length - 1 - bin;
         if (index >= 0 && index < bins.length) bins[index] += burned;
       }
-      let topDev = null;
-let max = 0;
-for (const [addr, amount] of Object.entries(devMap)) {
-  if (amount > max) {
-    max = amount;
-    topDev = addr;
-  }
-}
+
+      let topDev = null, max = 0;
+      for (const [addr, amount] of Object.entries(devMap)) {
+        if (amount > max) {
+          max = amount;
+          topDev = addr;
+        }
+      }
 
       return {
         burn24h: burn,
@@ -171,48 +204,42 @@ for (const [addr, amount] of Object.entries(devMap)) {
         avgFee: feeSum / (txs.length || 1),
         hourly: bins,
         topDeveloper: topDev ? { address: topDev, amount: max } : null
-
       };
     }
 
     function render(d, rangeLabel) {
       board.innerHTML = `
-        <div class="flex justify-center gap-4 mb-6">
-          ${['day', 'week'].map(r =>
-            `<button data-range="${r}" class="range-btn px-4 py-2 rounded-full border ${r === rangeLabel ? 'bg-white text-black font-bold' : 'border-white text-white'} hover:bg-white hover:text-black transition">
-              ${r.charAt(0).toUpperCase() + r.slice(1)}
-            </button>`
-          ).join('')}
-        </div>
+        <div class="flex justify-center gap-4 mb-2">
+  ${['day', 'week', 'month'].map(r => `
+    <button data-range="${r}" class="range-btn px-4 py-2 rounded-full border ${r === rangeLabel ? 'bg-white text-black font-bold' : 'border-white text-white'} hover:bg-white hover:text-black transition">
+      ${r.charAt(0).toUpperCase() + r.slice(1)}
+    </button>`).join('')}
+</div>
+<div id="loadingMessage" class="range-loading-bar"></div>
+
+
         <div class="flex flex-col items-center mb-8">
             <p class="uppercase text-sm tracking-widest text-gray-400">Burned in last ${prettyLabel(rangeLabel)}</p>
-
-          <h2 class="text-4xl sm:text-5xl font-bold" style="color:var(--xian-orange)">
-            ${fmt(d.burn24h)} XIAN
-          </h2>
+            <h2 class="text-4xl sm:text-5xl font-bold" style="color:var(--xian-orange)">${fmt(d.burn24h)} XIAN</h2>
         </div>
         <div class="grid gap-6 grid-cols-1 sm:grid-cols-3 mb-8">
-            ${card(`<i data-lucide="code" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Developer Rewards (${prettyLabel(rangeLabel)})`, d.fees.dev)}
-
-            ${card(`<i data-lucide="shield" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Validator Rewards (${prettyLabel(rangeLabel)})`, d.fees.val)}
-${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Foundation Rewards (${prettyLabel(rangeLabel)})`, d.fees.fnd)}
+          ${card(`<i data-lucide="code" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Developer Rewards`, d.fees.dev)}
+          ${card(`<i data-lucide="shield" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Validator Rewards`, d.fees.val)}
+          ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Foundation Rewards`, d.fees.fnd)}
         </div>
         ${d.topDeveloper ? `
-  <div class="text-center sm:col-span-3 text-sm text-gray-400">
-    <i data-lucide="star" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Top Developer: <a href="https://explorer.xian.org/addresses/${d.topDeveloper.address}" class="text-xian-cyan hover:underline" target="_blank">${d.topDeveloper.address.slice(0, 6)}...${d.topDeveloper.address.slice(-4)}</a>
-    earned <span class="text-white font-semibold">${fmt(d.topDeveloper.amount)} XIAN</span> from transaction fees
-  </div>` : ''}
+          <div class="text-center sm:col-span-3 text-sm text-gray-400">
+            <i data-lucide="star" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Top Developer:
+            <a href="https://explorer.xian.org/addresses/${d.topDeveloper.address}" class="text-xian-cyan hover:underline" target="_blank">${d.topDeveloper.address.slice(0, 6)}...${d.topDeveloper.address.slice(-4)}</a>
+            earned <span class="text-white font-semibold">${fmt(d.topDeveloper.amount)} XIAN</span>
+          </div>` : ''}
         <div class="border-t border-white/20 my-8"></div>
         <div class="flex flex-col sm:flex-row gap-6 justify-center mb-8">
-            ${mini(`Avg Tx Fee (${prettyLabel(rangeLabel)})`, fmt(d.avgFee) + ' XIAN')}
-
+          ${mini(`Avg Tx Fee (${prettyLabel(rangeLabel)})`, fmt(d.avgFee) + ' XIAN')}
         </div>
         <div class="my-8">
           <p class="text-sm text-gray-400 text-center mb-2">
-            <p class="text-sm text-gray-400 text-center mb-2">
-  ${rangeLabel === 'day' ? 'Hourly burn (past 24h)' : `Daily burn (past ${prettyLabel(rangeLabel)})`}
-</p>
-
+            ${rangeLabel === 'day' ? 'Hourly burn (past 24h)' : `Daily burn (past ${prettyLabel(rangeLabel)})`}
           </p>
           <canvas id="burnChart" height="120"></canvas>
         </div>`;
@@ -232,9 +259,7 @@ ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i
         y
       }));
 
-      if (chart) {
-        chart.destroy();
-      }
+      if (chart) chart.destroy();
 
       chart = new Chart(ctx, {
         type: 'line',
@@ -272,8 +297,8 @@ ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i
           }
         }
       });
-      lucide.createIcons();
 
+      lucide.createIcons();
     }
 
     const card = (t, v) => `
@@ -290,7 +315,11 @@ ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i
 
     function addRangeListeners() {
       document.querySelectorAll('.range-btn').forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('loading-btn');
+
         btn.onclick = () => {
+          if (loading) return;
           selectedRange = btn.dataset.range;
           refresh();
         };
@@ -298,21 +327,37 @@ ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i
     }
 
     async function refresh() {
-      const cutoff = getCutoffISO(selectedRange);
+      if (loading) return;
+      loading = true;
+
+      const loadingMessage = qs('#loadingMessage');
+      const buttons = document.querySelectorAll('.range-btn');
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('loading-btn');
+      });
+      if (loadingMessage) loadingMessage.classList.add('active');
+
+
       try {
-        const [rate, txData] = await Promise.all([
+        const [rate, txs] = await Promise.all([
           getStampRate(),
-          gql(txQuery(cutoff))
+          fetchAllTxs(selectedRange)
         ]);
-        if (!rate) throw 'stamp rate null';
-        const txs = txEdges(txData);
+
         const data = txs.length
           ? crunch(txs, rate, selectedRange)
           : { burn24h: 0, fees: { dev: 0, val: 0, fnd: 0 }, avgFee: 0, hourly: getChartLabels(selectedRange) };
+
         render(data, selectedRange);
         addRangeListeners();
-      } catch (e) {
-        console.error(e);
+      } catch (err) {
+        console.error('Refresh error:', err);
+        if (loadingMessage) loadingMessage.textContent = 'Error loading data.';
+      } finally {
+        loading = false;
+        if (loadingMessage) loadingMessage.classList.remove('active');
+
       }
     }
 
