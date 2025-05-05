@@ -235,11 +235,9 @@ body {
     color: #fff;
     display: flex;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
     text-align: center;
-    overflow: hidden;
     position: relative;
 }
 
@@ -1128,9 +1126,5 @@ body.modal-open {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
-  .skeleton {
-    background-color: rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-    animation: pulse 1.5s infinite ease-in-out;
-  }
+ 
   
