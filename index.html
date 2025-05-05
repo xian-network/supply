@@ -317,7 +317,6 @@ ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i
     }
 
     await refresh();
-    setInterval(refresh, REFRESH_MS);
     window.addEventListener('resize', () => chart && (chart.resize(), chart.update()));
   </script>
 </body>
