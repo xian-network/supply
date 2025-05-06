@@ -209,103 +209,140 @@
         fees: { dev, val, fnd },
         avgFee: feeSum / (txs.length || 1),
         hourly: bins,
-        topDeveloper: topDev ? { address: topDev, amount: max } : null
+        topDeveloper: topDev ? { address: topDev, amount: max } : null,
+        devMap: devMap
       };
     }
 
     function render(d, rangeLabel) {
-      board.innerHTML = `
-        <div class="flex justify-center gap-4 mb-2">
-  ${['day', 'week', 'month'].map(r => `
-    <button data-range="${r}" class="range-btn px-4 py-2 rounded-full border ${r === rangeLabel ? 'bg-white text-black font-bold' : 'border-white text-white'} hover:bg-white hover:text-black transition">
-      ${r.charAt(0).toUpperCase() + r.slice(1)}
-    </button>`).join('')}
-</div>
-<div id="loadingMessage" class="range-loading-bar"></div>
+  board.innerHTML = `
+    <div class="flex justify-center gap-4 mb-2">
+      ${['day', 'week', 'month'].map(r => `
+        <button data-range="${r}" class="range-btn px-4 py-2 rounded-full border ${r === rangeLabel ? 'bg-white text-black font-bold' : 'border-white text-white'} hover:bg-white hover:text-black transition">
+          ${r.charAt(0).toUpperCase() + r.slice(1)}
+        </button>`).join('')}
+    </div>
+    <div id="loadingMessage" class="range-loading-bar"></div>
 
+    <!-- Total burned -->
+    <div class="flex flex-col items-center mb-8">
+      <p class="uppercase text-sm tracking-widest text-gray-400">Burned in last ${prettyLabel(rangeLabel)}</p>
+      <h2 class="text-4xl sm:text-5xl font-bold" style="color:var(--xian-orange)">${fmt(d.burn24h)} XIAN</h2>
+    </div>
 
-        <div class="flex flex-col items-center mb-8">
-            <p class="uppercase text-sm tracking-widest text-gray-400">Burned in last ${prettyLabel(rangeLabel)}</p>
-            <h2 class="text-4xl sm:text-5xl font-bold" style="color:var(--xian-orange)">${fmt(d.burn24h)} XIAN</h2>
-        </div>
-        <div class="grid gap-6 grid-cols-1 sm:grid-cols-3 mb-8">
-          ${card(`<i data-lucide="code" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Developer Rewards`, d.fees.dev)}
-          ${card(`<i data-lucide="shield" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Validator Rewards`, d.fees.val)}
-          ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Foundation Rewards`, d.fees.fnd)}
-        </div>
-        ${d.topDeveloper ? `
-          <div class="text-center sm:col-span-3 text-sm text-gray-400">
-            <i data-lucide="star" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Top Developer:
-            <a href="https://explorer.xian.org/addresses/${d.topDeveloper.address}" class="text-xian-cyan hover:underline" target="_blank">${d.topDeveloper.address.slice(0, 6)}...${d.topDeveloper.address.slice(-4)}</a>
-            earned <span class="text-white font-semibold">${fmt(d.topDeveloper.amount)} XIAN</span>
-          </div>` : ''}
-        <div class="border-t border-white/20 my-8"></div>
-        <div class="flex flex-col sm:flex-row gap-6 justify-center mb-8">
-          ${mini(`Avg Tx Fee (${prettyLabel(rangeLabel)})`, fmt(d.avgFee) + ' XIAN')}
-        </div>
-        <div class="my-8">
-          <p class="text-sm text-gray-400 text-center mb-2">
-            ${rangeLabel === 'day' ? 'Hourly burn (past 24h)' : `Daily burn (past ${prettyLabel(rangeLabel)})`}
-          </p>
-          <canvas id="burnChart" height="120"></canvas>
-        </div>`;
+    <!-- Avg Tx Fee -->
+    <div class="flex flex-col sm:flex-row gap-6 justify-center mb-8">
+      ${mini(`Avg Tx Fee (${prettyLabel(rangeLabel)})`, fmt(d.avgFee) + ' XIAN')}
+    </div>
 
-      const canvas = qs('#burnChart');
-      if (!canvas) return;
+    <!-- Rewards Summary -->
+    <div class="grid gap-6 grid-cols-1 sm:grid-cols-3 mb-8">
+      ${card(`<i data-lucide="code" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Developer Rewards`, d.fees.dev)}
+      ${card(`<i data-lucide="shield" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Validator Rewards`, d.fees.val)}
+      ${card(`<i data-lucide="crown" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Foundation Rewards`, d.fees.fnd)}
+    </div>
 
-      const ctx = canvas.getContext('2d');
-      const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
-      grad.addColorStop(0, 'rgba(6,230,203,.35)');
-      grad.addColorStop(1, 'rgba(6,230,203,0)');
+    <!-- Top Developer -->
+    ${d.topDeveloper ? `
+      <div class="text-center sm:col-span-3 text-sm text-gray-400">
+        <i data-lucide="star" class="inline w-4 h-4 mr-2 align-text-bottom"></i>Top Developer:
+        <a href="https://explorer.xian.org/addresses/${d.topDeveloper.address}" class="text-xian-cyan hover:underline" target="_blank">${d.topDeveloper.address.slice(0, 6)}...${d.topDeveloper.address.slice(-4)}</a>
+        earned <span class="text-white font-semibold">${fmt(d.topDeveloper.amount)} XIAN</span>
+      </div>` : ''}
 
-      const now = Date.now();
-      const unitMs = rangeLabel === 'day' ? 3600000 : 86400000;
-      const pointData = d.hourly.map((y, i) => ({
-        x: now - ((d.hourly.length - 1 - i) * unitMs),
-        y
-      }));
+    <!-- Developer Table -->
+    ${d.devMap && Object.keys(d.devMap).length ? `
+      <div class="my-8 overflow-auto">
+        <h3 class="text-center text-xl font-bold mb-4">Developer Rewards</h3>
+        <table class="w-full text-sm text-left table-auto border-collapse">
+          <thead>
+            <tr class="border-b border-white/10 text-gray-400">
+              <th class="px-4 py-2">Address</th>
+              <th class="px-4 py-2 text-right">Reward (XIAN)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(d.devMap)
+              .sort((a, b) => b[1] - a[1])
+              .map(([addr, amt]) => `
+                <tr class="border-b border-white/5 hover:bg-white/5">
+                  <td class="px-4 py-2">
+                    <a href="https://explorer.xian.org/addresses/${addr}" target="_blank" class="text-xian-cyan hover:underline">
+                      ${addr.slice(0, 6)}...${addr.slice(-4)}
+                    </a>
+                  </td>
+                  <td class="px-4 py-2 text-right">${fmt(amt)}</td>
+                </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>` : ''}
 
-      if (chart) chart.destroy();
+    <!-- Chart -->
+    <div class="border-t border-white/20 my-8"></div>
+    <div class="my-8">
+      <p class="text-sm text-gray-400 text-center mb-2">
+        ${rangeLabel === 'day' ? 'Hourly burn (past 24h)' : `Daily burn (past ${prettyLabel(rangeLabel)})`}
+      </p>
+      <canvas id="burnChart" height="120"></canvas>
+    </div>`;
 
-      chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          datasets: [{
-            label: 'XIAN burned',
-            data: pointData,
-            borderColor: '#06e6cb',
-            borderWidth: 3,
-            pointRadius: 0,
-            tension: 0.3,
-            backgroundColor: grad,
-            fill: true
-          }]
-        },
-        options: {
-          plugins: {
-            legend: { display: false },
-            tooltip: { backgroundColor: '#111', bodyColor: 'var(--xian-cyan)' }
+  const canvas = qs('#burnChart');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  grad.addColorStop(0, 'rgba(6,230,203,.35)');
+  grad.addColorStop(1, 'rgba(6,230,203,0)');
+
+  const now = Date.now();
+  const unitMs = rangeLabel === 'day' ? 3600000 : 86400000;
+  const pointData = d.hourly.map((y, i) => ({
+    x: now - ((d.hourly.length - 1 - i) * unitMs),
+    y
+  }));
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'XIAN burned',
+        data: pointData,
+        borderColor: '#06e6cb',
+        borderWidth: 3,
+        pointRadius: 0,
+        tension: 0.3,
+        backgroundColor: grad,
+        fill: true
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#111', bodyColor: 'var(--xian-cyan)' }
+      },
+      scales: {
+        x: {
+          type: 'time',
+          time: {
+            unit: rangeLabel === 'day' ? 'hour' : 'day',
+            displayFormats: rangeLabel === 'day' ? { hour: 'HH:mm' } : { day: 'MMM d' }
           },
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: rangeLabel === 'day' ? 'hour' : 'day',
-                displayFormats: rangeLabel === 'day' ? { hour: 'HH:mm' } : { day: 'MMM d' }
-              },
-              ticks: { color: '#777', font: { size: 12 } },
-              grid: { color: 'rgba(255,255,255,0.07)', dash: [3, 3] }
-            },
-            y: {
-              ticks: { color: '#777', font: { size: 12 } },
-              grid: { color: 'rgba(255,255,255,0.07)', dash: [3, 3] }
-            }
-          }
+          ticks: { color: '#777', font: { size: 12 } },
+          grid: { color: 'rgba(255,255,255,0.07)', dash: [3, 3] }
+        },
+        y: {
+          ticks: { color: '#777', font: { size: 12 } },
+          grid: { color: 'rgba(255,255,255,0.07)', dash: [3, 3] }
         }
-      });
-
-      lucide.createIcons();
+      }
     }
+  });
+
+  lucide.createIcons();
+}
+
 
     const card = (t, v) => `
       <div class="glass rounded-3xl p-6 flex flex-col gap-2 text-center">
