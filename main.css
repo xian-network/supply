@@ -1,4 +1,30 @@
-/* ------------- your existing bridge design (pasted verbatim) ------------- */
+:root {
+      --xian-cyan: #06e6cb;
+      --xian-orange: #ff914a;
+    }
+
+    body {
+     
+      flex-direction: column;
+      padding: 2rem;
+    }
+
+    .glass {
+      background: rgba(11, 11, 15, .7);
+      backdrop-filter: blur(50px);
+      border: 1px solid rgba(255, 255, 255, .47);
+    }
+
+    .text-xian-cyan {
+      color: var(--xian-cyan);
+    }
+
+    .hover\:text-xian-cyan:hover {
+      color: var(--xian-cyan);
+    }
+
+    
+
 
 .container {
     background: #1a1a1a;
@@ -274,6 +300,18 @@ body::after {
     to {
         transform: translateY(20px);
     }
+}
+
+/* subtle polish */
+.app-header h1{
+  line-height:1;           /* exact baseline match with the logo */
+  letter-spacing:.01em;    /* a touch more breathing room */
+}
+
+@media(max-width:640px){   /* phone */
+  .app-header{gap:.5rem; padding-top:1.25rem; padding-bottom:1.25rem;}
+  .app-header img{height:1.75rem;}
+  .app-header h1{font-size:1.25rem;}
 }
 
 /* Centering the content */
@@ -1126,5 +1164,52 @@ body.modal-open {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
- 
-  
+
+
+@media (max-width:640px){
+  /* the address & the amount cells */
+  td {
+    padding: 10px 0;            /* 10 px top + bottom  →  44 px row height */
+    font-size: 0.875rem;        /* 14 px text for readability             */
+  }
+}
+
+/* range buttons */
+    .range-btn:not(.active){opacity:.6; transition:opacity .15s}
+    .range-btn:not(.active):hover{opacity:1}
+
+    /* rewards card grid – equal height */
+    #rewardsCards{display:grid;gap:1.5rem}
+    @media(min-width:640px){#rewardsCards{grid-template-columns:repeat(3,1fr);}}
+    #rewardsCards>.rewards-card{display:flex;flex-direction:column;height:100%}
+
+    /* rewards table columns */
+    .rew-amt{width:4.5rem;text-align:right}
+    .rew-addr{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+    /* enlarge tap target invisibly */
+    .link-addr{position:relative;display:inline-block}
+    .link-addr::after{content:'';position:absolute;top:-10px;bottom:-10px;left:-8px;right:-8px}
+    /* mobile row padding & font */
+    @media(max-width:640px){
+      td{padding:10px 0;font-size:.875rem}
+    }
+
+    .splitbar{position:relative}
+               .splitbar .seg{display:block;height:100%}
+               .splitbar .seg:not(:first-child){margin-left:1px}/* thin gap */
+               .splitbar .seg:hover::after,
+               .splitbar .seg:focus-visible::after{
+                 content:attr(data-name)' — 'attr(data-pct)'%';
+                 position:absolute;top:-1.8rem;left:50%;transform:translateX(-50%);
+                 background:#000;border-radius:0.25rem;padding:0.2rem 0.4rem;
+                 font-size:0.7rem;white-space:nowrap;pointer-events:none;
+               }
+
+               @media (max-width:640px){
+  /* make bar span the whole card */
+  .splitbar            { max-width:100% !important; }
+
+  /* wrap legend items into 2-column grid */
+  .splitbar-legend     { flex-wrap:wrap; row-gap:4px; column-gap:6px; }
+  .splitbar-legend li  { width:49%; justify-content:flex-start; }
+}
